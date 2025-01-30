@@ -1,5 +1,4 @@
 import streamlit as st
-from secret_key import openapi_key
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 import os
 from langchain.text_splitter import LatexTextSplitter
@@ -13,9 +12,10 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.docstore.document import Document
+from dotenv import load_dotenv
 
-# Initialize the OpenAI API key
-os.environ["OPENAI_API_KEY"] = openapi_key
+load_dotenv()
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 # Set up session state if it doesn't exist
 if "conversational_rag_chain" not in st.session_state:
@@ -25,7 +25,7 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = {}
 
 if "vectorstore" not in st.session_state:
-    st.session_state.vectorstore = None  # Ensure vectorstore is initialized globally
+    st.session_state.vectorstore = None  # Ensuring vectorstore is initialized globally
 
 # Function to retrieve session history or create a new one if it doesn't exist
 def get_session_history(session_id: str) -> ChatMessageHistory:
@@ -56,7 +56,7 @@ def user_query(question):
         history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
         
         system_prompt = (
-            "You are a helpful assistant. Use only the following pieces of context to answer the question at the end. "
+            "You are a helpful assistant. Except for greetings & farewells, use only the following pieces of context to answer the question at the end. "
             "Use only the content provided to answer and if the question is out of scope, just say I don't know and don't hallucinate the answers from external sources."
             "If you don't know the answer, just say that you don't know, don't try to make up an answer."
             "\n\n"
@@ -95,8 +95,6 @@ def user_query(question):
 # File and URL input
 url_input = st.text_input(label="Enter your URL: (if multiple urls, use ',' to separate urls)")
 file_input = st.file_uploader("Upload a file (PDF, DOCX, TXT)", type=["pdf", "docx", "txt"], accept_multiple_files=True)
-
-
 
 # Process URLs
 if url_input:
@@ -152,7 +150,6 @@ elif file_input:
 
     # Split and embed the documents
     docs = [Document(page_content=text) for text in content]
-    st.write(docs)
     text_splitter = LatexTextSplitter(chunk_size=500, chunk_overlap=100)
     chunks = text_splitter.create_documents(content)
     embeddings = OpenAIEmbeddings()
